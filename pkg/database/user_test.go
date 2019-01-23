@@ -17,21 +17,43 @@ func TestCreateUser(t *testing.T) {
 	resetUserTable()
 
 	testCases := []struct {
-		name string
+		name   string
+		email  string
+		errMsg string
 	}{
-		{name: "test name"},
+		{errMsg: "NOT NULL constraint failed: users.email"},
+		{name: "test name", email: "test email"},
 	}
 
 	for _, tc := range testCases {
 		t.Run("", func(t *testing.T) {
-			id, err := CreateUser(&User{Name: tc.name})
-			if err != nil {
-				t.Fatal(err)
+			var id uint
+			var err error
+			if tc.email != "" {
+				id, err = CreateUser(&User{Name: tc.name, Email: &tc.email})
+			} else {
+				id, err = CreateUser(&User{Name: tc.name})
 			}
-			user := &User{Model: gorm.Model{ID: id}}
-			GetDB().Take(user)
-			if user.Name != tc.name {
-				t.Fatalf("expected: %v, actual: %v", tc.name, user.Name)
+
+			if err != nil {
+				if err.Error() != tc.errMsg {
+					t.Fatalf("expected: %v, actual: %v", tc.errMsg, err.Error())
+				}
+				if id != 0 {
+					t.Fatalf("expected: 0, actual: %v", id)
+				}
+			} else {
+				if tc.errMsg != "" {
+					t.Fatalf("expected: %v, actual: nil", tc.errMsg)
+				}
+				user := &User{Model: gorm.Model{ID: id}}
+				GetDB().Take(user)
+				if user.Name != tc.name {
+					t.Fatalf("expected: %v, actual: %v", tc.name, user.Name)
+				}
+				if *user.Email != tc.email {
+					t.Fatalf("expected: %v, actual: %v", tc.email, *user.Email)
+				}
 			}
 		})
 	}
@@ -48,7 +70,8 @@ func TestGetUsers(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			resetUserTable()
 			for i := 0; i < tc.count; i++ {
-				GetDB().Create(&User{Email: "test"})
+				email := "test" + string(i)
+				GetDB().Create(&User{Email: &email})
 			}
 
 			users, err := GetUsers()
@@ -88,6 +111,8 @@ func TestGetUser(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			resetUserTable()
 			for _, v := range tc.users {
+				email := "test" + v.Phone
+				v.Email = &email
 				GetDB().Create(v)
 			}
 

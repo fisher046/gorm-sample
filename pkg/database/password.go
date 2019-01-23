@@ -7,8 +7,8 @@ import (
 // UserPassword table definition
 type UserPassword struct {
 	gorm.Model
-	UserID string
-	Hash   string
+	UserID uint
+	Hash   []byte
 }
 
 func init() {

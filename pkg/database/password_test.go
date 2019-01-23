@@ -18,9 +18,9 @@ func TestCreateUserPassword(t *testing.T) {
 	resetUserPasswordTable()
 
 	testCases := []struct {
-		userID string
+		userID uint
 	}{
-		{userID: "test"},
+		{userID: 1001},
 	}
 
 	for _, tc := range testCases {

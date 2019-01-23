@@ -7,10 +7,10 @@ import (
 // User table definition
 type User struct {
 	gorm.Model
-	Name  string
-	Email string
-	Phone string
-	Extra string
+	Name  string  `gorm:"type:varchar(100)"`
+	Email *string `gorm:"type:varchar(100);unique_index;not null"`
+	Phone string  `gorm:"type:varchar(100)"`
+	Extra string  `gorm:"type:varchar(100)"`
 }
 
 func init() {
