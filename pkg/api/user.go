@@ -1,6 +1,9 @@
 package api
 
 import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
 	"github.com/golang/glog"
 	"golang.org/x/crypto/bcrypt"
 
@@ -9,15 +12,43 @@ import (
 
 // User structure
 type User struct {
-	Name     string `json:"name" binding:"required"`
-	Password string `json:"password" binding:"required"`
-	Email    string `json:"email" binding:"required"`
-	Phone    string `json:"phone"`
+	Name  string `json:"name" binding:"required"`
+	Email string `json:"email" binding:"required"`
+	Phone string `json:"phone"`
 }
 
-func doCreateUser(user *User) (id uint, err error) {
+// UserPassword is the structure of user info with password
+type UserPassword struct {
+	User
+	Password string `json:"password" binding:"required"`
+}
+
+// CreateUser is the implementation of /users
+func CreateUser(c *gin.Context) {
+	var usrPwd UserPassword
+
+	err := c.ShouldBindJSON(&usrPwd)
+	if err != nil {
+		glog.Error(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	id, err := doCreateUser(&usrPwd)
+	if err != nil {
+		glog.Error(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+
+	return
+}
+
+func doCreateUser(usrPwd *UserPassword) (id uint, err error) {
 	hash, err := bcrypt.GenerateFromPassword(
-		[]byte(user.Password), bcrypt.DefaultCost,
+		[]byte(usrPwd.Password), bcrypt.DefaultCost,
 	)
 	if err != nil {
 		return
@@ -25,9 +56,9 @@ func doCreateUser(user *User) (id uint, err error) {
 
 	id, err = database.CreateUser(
 		&database.User{
-			Name:  user.Name,
-			Email: &user.Email,
-			Phone: user.Phone,
+			Name:  usrPwd.Name,
+			Email: &usrPwd.Email,
+			Phone: usrPwd.Phone,
 		},
 	)
 	if err != nil {

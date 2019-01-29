@@ -1,7 +1,13 @@
 package api
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 
 	"github.com/fisher046/gorm-sample/pkg/database"
 )
@@ -20,6 +26,46 @@ func resetTables() {
 	}
 }
 
+func TestCreateUser(t *testing.T) {
+	testCases := []struct {
+		name     string
+		password string
+		email    string
+		code     int
+	}{
+		{code: http.StatusBadRequest},
+		{
+			name: "test", password: "pass", email: "email",
+			code: http.StatusCreated,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run("", func(t *testing.T) {
+			resetTables()
+			r := gin.Default()
+			r.POST("/user", CreateUser)
+
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(
+				"POST", "/user",
+				strings.NewReader(
+					fmt.Sprintf(
+						"{\"Name\":\"%v\",\"Email\":\"%v\",\"Password\":\"%v\"}",
+						tc.name, tc.email, tc.password,
+					),
+				),
+			)
+			r.ServeHTTP(w, req)
+			if w.Code != tc.code {
+				t.Errorf("response body: %v", w.Body.String())
+				t.Fatalf("expected: %v, actual: %v", tc.code, w.Code)
+
+			}
+		})
+	}
+}
+
 func TestDoCreateUser(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -32,12 +78,14 @@ func TestDoCreateUser(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run("", func(t *testing.T) {
 			resetTables()
-			user := &User{
-				Name:     tc.name,
+			usrPwd := &UserPassword{
+				User: User{
+					Name:  tc.name,
+					Email: tc.email,
+				},
 				Password: tc.password,
-				Email:    tc.email,
 			}
-			id, err := doCreateUser(user)
+			id, err := doCreateUser(usrPwd)
 			if err != nil {
 				t.Fatal(err)
 			}

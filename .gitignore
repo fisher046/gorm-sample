@@ -2,3 +2,4 @@
 *.out
 *.lock
 vendor
+gorm-sample
